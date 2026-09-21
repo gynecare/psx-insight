@@ -1,4 +1,14 @@
 import { sampleCompanies } from "@/data/sampleCompanies";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 export default async function CompanyPage({
   params,
@@ -10,6 +20,15 @@ export default async function CompanyPage({
 
   const data = sampleCompanies[upperSymbol];
   const hasData = !!data;
+
+  // Sample chart data (fake for now)
+  const chartData = [
+    { year: "2020", revenue: 120, eps: 18 },
+    { year: "2021", revenue: 145, eps: 22 },
+    { year: "2022", revenue: 180, eps: 28 },
+    { year: "2023", revenue: 210, eps: 35 },
+    { year: "2024", revenue: 255, eps: 42 },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -34,9 +53,6 @@ export default async function CompanyPage({
             <p className="text-slate-500 mb-6">
               This company is not available in the current sample data.
             </p>
-            <p className="text-sm text-slate-400 mb-8">
-              Real PSX data will be connected in a later stage.
-            </p>
             <a
               href="/"
               className="inline-block bg-teal-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-teal-700"
@@ -46,6 +62,7 @@ export default async function CompanyPage({
           </div>
         ) : (
           <>
+            {/* Header Card */}
             <div className="bg-white rounded-2xl border border-slate-100 p-6 mb-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
@@ -70,6 +87,7 @@ export default async function CompanyPage({
               </div>
             </div>
 
+            {/* Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
               {[
                 { label: "P/E Ratio", value: data.pe },
@@ -92,6 +110,42 @@ export default async function CompanyPage({
               ))}
             </div>
 
+            {/* Chart */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 mb-6">
+              <h2 className="text-lg font-semibold text-slate-800 mb-4">
+                Revenue & EPS Trend (Sample)
+              </h2>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="year" stroke="#64748b" />
+                    <YAxis stroke="#64748b" />
+                    <Tooltip />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="revenue"
+                      name="Revenue"
+                      stroke="#0d9488"
+                      strokeWidth={2}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="eps"
+                      name="EPS"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="text-xs text-slate-400 mt-3">
+                * This is sample/demo data for learning purposes only.
+              </p>
+            </div>
+
+            {/* Verdict */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-6">
                 <h2 className="text-lg font-semibold text-slate-800 mb-3">
