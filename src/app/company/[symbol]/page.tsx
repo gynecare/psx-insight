@@ -1,6 +1,32 @@
 import { sampleCompanies } from "@/data/sampleCompanies";
 import GrowthChart from "@/components/GrowthChart";
 
+async function getRealPrice(symbol: string) {
+  try {
+    const res = await fetch(
+      `https://psxdata-api.fastapicloud.dev/stocks/${symbol}/quote`,
+      {
+        next: { revalidate: 3600 }, // cache for 1 hour
+      }
+    );
+
+    if (!res.ok) return null;
+
+    const json = await res.json();
+    const data = json?.data;
+
+    if (!data) return null;
+
+    return {
+      price: data.price || data.ldcp || data.close || null,
+      change: data.change || null,
+      changePercent: data.change_percent || data.changePercent || null,
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
 export default async function CompanyPage({
   params,
 }: {
@@ -9,8 +35,23 @@ export default async function CompanyPage({
   const { symbol } = await params;
   const upperSymbol = symbol.toUpperCase();
 
-  const data = sampleCompanies[upperSymbol];
-  const hasData = !!data;
+  const sample = sampleCompanies[upperSymbol];
+  const realPriceData = await getRealPrice(upperSymbol);
+
+  const hasSample = !!sample;
+
+  // Prefer real price if available, otherwise use sample
+  const displayPrice = realPriceData?.price
+    ? Number(realPriceData.price).toFixed(2)
+    : sample?.price || "—";
+
+  const displayChange = realPriceData?.changePercent
+    ? `${Number(realPriceData.changePercent) > 0 ? "+" : ""}${Number(
+        realPriceData.changePercent
+      ).toFixed(2)}%`
+    : sample?.change || "—";
+
+  const isPositive = displayChange.toString().startsWith("+");
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -29,11 +70,11 @@ export default async function CompanyPage({
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        {!hasData ? (
+        {!hasSample ? (
           <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center">
             <h1 className="text-2xl font-bold text-slate-800 mb-2">{upperSymbol}</h1>
             <p className="text-slate-500 mb-6">
-              This company is not available in the current sample data.
+              This company is not available in the current data set.
             </p>
             <a
               href="/"
@@ -44,26 +85,35 @@ export default async function CompanyPage({
           </div>
         ) : (
           <>
-            {/* Header Card */}
+            {/* Company Header */}
             <div className="bg-white rounded-2xl border border-slate-100 p-6 mb-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <h1 className="text-3xl font-bold text-slate-800">{upperSymbol}</h1>
+                    <h1 className="text-3xl font-bold text-slate-800">
+                      {upperSymbol}
+                    </h1>
                     <span className="text-xs bg-teal-50 text-teal-700 px-2.5 py-1 rounded-full font-medium">
-                      {data.sector}
+                      {sample.sector}
                     </span>
+                    {realPriceData?.price && (
+                      <span className="text-xs bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-medium">
+                        Live EOD
+                      </span>
+                    )}
                   </div>
-                  <p className="text-slate-500">{data.name}</p>
+                  <p className="text-slate-500">{sample.name}</p>
                 </div>
                 <div className="text-left md:text-right">
-                  <div className="text-3xl font-bold text-slate-800">PKR {data.price}</div>
+                  <div className="text-3xl font-bold text-slate-800">
+                    PKR {displayPrice}
+                  </div>
                   <div
                     className={`text-sm font-medium ${
-                      data.change.startsWith("+") ? "text-green-600" : "text-slate-500"
+                      isPositive ? "text-green-600" : "text-slate-500"
                     }`}
                   >
-                    {data.change}
+                    {displayChange}
                   </div>
                 </div>
               </div>
@@ -72,14 +122,17 @@ export default async function CompanyPage({
             {/* Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
               {[
-                { label: "P/E Ratio", value: data.pe },
-                { label: "EPS", value: data.eps },
-                { label: "ROE", value: data.roe },
-                { label: "Debt/Equity", value: data.debtToEquity },
-                { label: "Dividend Yield", value: data.dividendYield },
-                { label: "Score", value: `${data.score} / 10` },
+                { label: "P/E Ratio", value: sample.pe },
+                { label: "EPS", value: sample.eps },
+                { label: "ROE", value: sample.roe },
+                { label: "Debt/Equity", value: sample.debtToEquity },
+                { label: "Dividend Yield", value: sample.dividendYield },
+                { label: "Score", value: `${sample.score} / 10` },
               ].map((item) => (
-                <div key={item.label} className="bg-white p-5 rounded-xl border border-slate-100">
+                <div
+                  key={item.label}
+                  className="bg-white p-5 rounded-xl border border-slate-100"
+                >
                   <div className="text-sm text-slate-500 mb-1">{item.label}</div>
                   <div
                     className={`text-xl font-bold ${
@@ -92,14 +145,14 @@ export default async function CompanyPage({
               ))}
             </div>
 
-            {/* Chart Section */}
+            {/* Chart */}
             <div className="bg-white rounded-2xl border border-slate-100 p-6 mb-6">
               <h2 className="text-lg font-semibold text-slate-800 mb-4">
-                Revenue & EPS Trend (Sample Data)
+                Revenue & EPS Trend (Sample)
               </h2>
               <GrowthChart />
               <p className="text-xs text-slate-400 mt-3">
-                * This is sample/demo data for learning purposes only.
+                * Chart is currently using sample data.
               </p>
             </div>
 
@@ -110,7 +163,7 @@ export default async function CompanyPage({
                   Plain English Verdict
                 </h2>
                 <p className="text-slate-600 leading-relaxed">
-                  {data.score >= 8
+                  {sample.score >= 8
                     ? `${upperSymbol} currently shows strong fundamentals with good profitability, reasonable valuation, and manageable debt.`
                     : `${upperSymbol} has decent fundamentals. Review latest results before investing.`}
                 </p>
@@ -123,7 +176,7 @@ export default async function CompanyPage({
                 <ul className="space-y-3 text-sm text-slate-600">
                   <li className="flex gap-2">
                     <span className="text-amber-500">▲</span>
-                    <span>Sample data for learning only.</span>
+                    <span>Price may be real EOD data. Fundamentals are still sample.</span>
                   </li>
                   <li className="flex gap-2">
                     <span className="text-amber-500">▲</span>
