@@ -1,69 +1,111 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+
+    const popularCompanies = [
+    { symbol: "ENGRO", name: "Engro Corporation" },
+    { symbol: "LUCK", name: "Lucky Cement" },
+    { symbol: "HBL", name: "Habib Bank" },
+    { symbol: "UBL", name: "United Bank" },
+    { symbol: "OGDC", name: "Oil & Gas Development" },
+    { symbol: "PSO", name: "Pakistan State Oil" },
+    { symbol: "MCB", name: "MCB Bank" },
+    { symbol: "FFC", name: "Fauji Fertilizer" },
+    { symbol: "MARI", name: "Mari Energies" },
+    { symbol: "PPL", name: "Pakistan Petroleum" },
+    { symbol: "MEBL", name: "Meezan Bank" },
+    { symbol: "SYS", name: "Systems Limited" },
+  ];
+
+  const handleSearch = () => {
+    if (search.trim() === "") return;
+    router.push(`/company/${search.trim().toUpperCase()}`);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen bg-slate-50">
+      <header className="bg-white border-b sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+              P
+            </div>
+            <h1 className="text-xl font-bold text-slate-800">PSX Insight</h1>
+          </div>
+          <nav className="hidden sm:flex items-center gap-6 text-sm font-medium text-slate-600">
+            <a href="/" className="text-teal-600">Home</a>
+            <a href="#" className="hover:text-teal-600">Watchlist</a>
+            <a href="#" className="hover:text-teal-600">Sectors</a>
+          </nav>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-4 py-12">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold text-slate-800 mb-3">
+            Analyze. Track. Invest.
+          </h2>
+          <p className="text-slate-600 text-lg">
+            Simple fundamental analysis for KSE-100 companies
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+
+        <div className="max-w-2xl mx-auto mb-14">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder="Enter symbol (e.g. ENGRO, LUCK, HBL)"
+              className="flex-1 px-5 py-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm text-slate-800"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <button
+              onClick={handleSearch}
+              className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3.5 rounded-xl font-medium transition"
+            >
+              Analyze
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-lg font-semibold text-slate-800">
+              Popular KSE-100 Companies
+            </h3>
+            <span className="text-xs text-slate-400">Sample data</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {popularCompanies.map((company) => (
+              <a
+                key={company.symbol}
+                href={`/company/${company.symbol}`}
+                className="bg-white p-5 rounded-xl border border-slate-100 hover:border-teal-300 hover:shadow-md transition block"
+              >
+                <div className="font-bold text-lg text-teal-700">
+                  {company.symbol}
+                </div>
+                <div className="text-sm text-slate-500 mt-1">
+                  {company.name}
+                </div>
+              </a>
+            ))}
+          </div>
         </div>
       </main>
+
+      <footer className="mt-16 border-t bg-white">
+        <div className="max-w-6xl mx-auto px-4 py-6 text-center text-sm text-slate-400">
+          PSX Insight — Educational tool for Pakistani investors • Free
+        </div>
+      </footer>
     </div>
   );
 }
