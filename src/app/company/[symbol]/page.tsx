@@ -3,7 +3,6 @@ import GrowthChart from "@/components/GrowthChart";
 
 async function getRealData(symbol: string) {
   try {
-    // Try to get quote (price)
     const quoteRes = await fetch(
       `https://psxdata-api.fastapicloud.dev/stocks/${symbol}/quote`,
       { next: { revalidate: 3600 } }
@@ -15,24 +14,9 @@ async function getRealData(symbol: string) {
       quoteData = json?.data || null;
     }
 
-    // Try to get fundamentals (may return limited data)
-    const fundRes = await fetch(
-      `https://psxdata-api.fastapicloud.dev/stocks/${symbol}/fundamentals`,
-      { next: { revalidate: 86400 } }
-    );
-
-    let fundData = null;
-    if (fundRes.ok) {
-      const json = await fundRes.json();
-      fundData = json?.data || null;
-    }
-
-    return {
-      quote: quoteData,
-      fundamentals: fundData,
-    };
+    return { quote: quoteData };
   } catch (error) {
-    return { quote: null, fundamentals: null };
+    return { quote: null };
   }
 }
 
@@ -49,9 +33,10 @@ export default async function CompanyPage({
 
   const hasSample = !!sample;
 
-  // Real price if available
-  const realPrice = real.quote?.price || real.quote?.ldcp || real.quote?.close || null;
-  const realChange = real.quote?.change_percent || real.quote?.changePercent || null;
+  const realPrice =
+    real.quote?.price || real.quote?.ldcp || real.quote?.close || null;
+  const realChange =
+    real.quote?.change_percent || real.quote?.changePercent || null;
 
   const displayPrice = realPrice
     ? Number(realPrice).toFixed(2)
@@ -83,7 +68,9 @@ export default async function CompanyPage({
       <main className="max-w-6xl mx-auto px-4 py-8">
         {!hasSample ? (
           <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center">
-            <h1 className="text-2xl font-bold text-slate-800 mb-2">{upperSymbol}</h1>
+            <h1 className="text-2xl font-bold text-slate-800 mb-2">
+              {upperSymbol}
+            </h1>
             <p className="text-slate-500 mb-6">
               This company is not available in the current data set.
             </p>
@@ -101,7 +88,9 @@ export default async function CompanyPage({
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h1 className="text-3xl font-bold text-slate-800">{upperSymbol}</h1>
+                    <h1 className="text-3xl font-bold text-slate-800">
+                      {upperSymbol}
+                    </h1>
                     <span className="text-xs bg-teal-50 text-teal-700 px-2.5 py-1 rounded-full font-medium">
                       {sample.sector}
                     </span>
@@ -128,24 +117,21 @@ export default async function CompanyPage({
               </div>
             </div>
 
-            {/* Metrics - still using sample for now */}
+            {/* Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
               {[
-                { label: "P/E Ratio", value: sample.pe, note: "Sample" },
-                { label: "EPS", value: sample.eps, note: "Sample" },
-                { label: "ROE", value: sample.roe, note: "Sample" },
-                { label: "Debt/Equity", value: sample.debtToEquity, note: "Sample" },
-                { label: "Dividend Yield", value: sample.dividendYield, note: "Sample" },
-                { label: "Score", value: `${sample.score} / 10`, note: "Sample" },
+                { label: "P/E Ratio", value: sample.pe || "—" },
+                { label: "EPS", value: sample.eps || "—" },
+                { label: "ROE", value: sample.roe || "—" },
+                { label: "Debt/Equity", value: sample.debtToEquity || "—" },
+                { label: "Dividend Yield", value: sample.dividendYield || "—" },
+                { label: "Score", value: sample.score ? `${sample.score} / 10` : "—" },
               ].map((item) => (
                 <div
                   key={item.label}
                   className="bg-white p-5 rounded-xl border border-slate-100"
                 >
-                  <div className="text-sm text-slate-500 mb-1 flex justify-between">
-                    <span>{item.label}</span>
-                    <span className="text-[10px] text-amber-500">{item.note}</span>
-                  </div>
+                  <div className="text-sm text-slate-500 mb-1">{item.label}</div>
                   <div
                     className={`text-xl font-bold ${
                       item.label === "Score" ? "text-teal-600" : "text-slate-800"
@@ -160,7 +146,7 @@ export default async function CompanyPage({
             {/* Chart */}
             <div className="bg-white rounded-2xl border border-slate-100 p-6 mb-6">
               <h2 className="text-lg font-semibold text-slate-800 mb-4">
-                Revenue & EPS Trend (Sample)
+                Growth Trend (Sample)
               </h2>
               <GrowthChart />
               <p className="text-xs text-slate-400 mt-3">
@@ -168,7 +154,7 @@ export default async function CompanyPage({
               </p>
             </div>
 
-            {/* Verdict */}
+            {/* Verdict + Status */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-6">
                 <h2 className="text-lg font-semibold text-slate-800 mb-3">
@@ -176,8 +162,8 @@ export default async function CompanyPage({
                 </h2>
                 <p className="text-slate-600 leading-relaxed">
                   {sample.score >= 8
-                    ? `${upperSymbol} currently shows strong fundamentals with good profitability and manageable debt (based on available data).`
-                    : `${upperSymbol} has decent fundamentals. Always verify the latest financial results before making decisions.`}
+                    ? `${upperSymbol} currently shows relatively strong metrics based on available data.`
+                    : `${upperSymbol} has mixed fundamentals. Always verify the latest financial results from official sources before making any decision.`}
                 </p>
               </div>
 
@@ -188,15 +174,17 @@ export default async function CompanyPage({
                 <ul className="space-y-3 text-sm text-slate-600">
                   <li className="flex gap-2">
                     <span className="text-green-500">●</span>
-                    <span>Closing Price: {isRealPrice ? "Real EOD" : "Sample"}</span>
+                    <span>
+                      Closing Price: {isRealPrice ? "Real EOD" : "Not available"}
+                    </span>
                   </li>
                   <li className="flex gap-2">
                     <span className="text-amber-500">●</span>
-                    <span>Fundamentals (P/E, EPS, ROE…): Sample</span>
+                    <span>Fundamentals: Limited / Sample</span>
                   </li>
                   <li className="flex gap-2">
                     <span className="text-red-500">●</span>
-                    <span>Not financial advice. Do your own research.</span>
+                    <span>Not financial advice</span>
                   </li>
                 </ul>
               </div>
