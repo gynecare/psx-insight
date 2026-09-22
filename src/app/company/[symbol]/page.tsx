@@ -1,29 +1,38 @@
 import { sampleCompanies } from "@/data/sampleCompanies";
 import GrowthChart from "@/components/GrowthChart";
 
-async function getRealPrice(symbol: string) {
+async function getRealData(symbol: string) {
   try {
-    const res = await fetch(
+    // Try to get quote (price)
+    const quoteRes = await fetch(
       `https://psxdata-api.fastapicloud.dev/stocks/${symbol}/quote`,
-      {
-        next: { revalidate: 3600 }, // cache for 1 hour
-      }
+      { next: { revalidate: 3600 } }
     );
 
-    if (!res.ok) return null;
+    let quoteData = null;
+    if (quoteRes.ok) {
+      const json = await quoteRes.json();
+      quoteData = json?.data || null;
+    }
 
-    const json = await res.json();
-    const data = json?.data;
+    // Try to get fundamentals (may return limited data)
+    const fundRes = await fetch(
+      `https://psxdata-api.fastapicloud.dev/stocks/${symbol}/fundamentals`,
+      { next: { revalidate: 86400 } }
+    );
 
-    if (!data) return null;
+    let fundData = null;
+    if (fundRes.ok) {
+      const json = await fundRes.json();
+      fundData = json?.data || null;
+    }
 
     return {
-      price: data.price || data.ldcp || data.close || null,
-      change: data.change || null,
-      changePercent: data.change_percent || data.changePercent || null,
+      quote: quoteData,
+      fundamentals: fundData,
     };
   } catch (error) {
-    return null;
+    return { quote: null, fundamentals: null };
   }
 }
 
@@ -36,22 +45,24 @@ export default async function CompanyPage({
   const upperSymbol = symbol.toUpperCase();
 
   const sample = sampleCompanies[upperSymbol];
-  const realPriceData = await getRealPrice(upperSymbol);
+  const real = await getRealData(upperSymbol);
 
   const hasSample = !!sample;
 
-  // Prefer real price if available, otherwise use sample
-  const displayPrice = realPriceData?.price
-    ? Number(realPriceData.price).toFixed(2)
+  // Real price if available
+  const realPrice = real.quote?.price || real.quote?.ldcp || real.quote?.close || null;
+  const realChange = real.quote?.change_percent || real.quote?.changePercent || null;
+
+  const displayPrice = realPrice
+    ? Number(realPrice).toFixed(2)
     : sample?.price || "—";
 
-  const displayChange = realPriceData?.changePercent
-    ? `${Number(realPriceData.changePercent) > 0 ? "+" : ""}${Number(
-        realPriceData.changePercent
-      ).toFixed(2)}%`
+  const displayChange = realChange
+    ? `${Number(realChange) > 0 ? "+" : ""}${Number(realChange).toFixed(2)}%`
     : sample?.change || "—";
 
-  const isPositive = displayChange.toString().startsWith("+");
+  const isPositive = String(displayChange).startsWith("+");
+  const isRealPrice = !!realPrice;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -85,20 +96,18 @@ export default async function CompanyPage({
           </div>
         ) : (
           <>
-            {/* Company Header */}
+            {/* Header */}
             <div className="bg-white rounded-2xl border border-slate-100 p-6 mb-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <h1 className="text-3xl font-bold text-slate-800">
-                      {upperSymbol}
-                    </h1>
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <h1 className="text-3xl font-bold text-slate-800">{upperSymbol}</h1>
                     <span className="text-xs bg-teal-50 text-teal-700 px-2.5 py-1 rounded-full font-medium">
                       {sample.sector}
                     </span>
-                    {realPriceData?.price && (
+                    {isRealPrice && (
                       <span className="text-xs bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-medium">
-                        Live EOD
+                        Live EOD Price
                       </span>
                     )}
                   </div>
@@ -119,21 +128,24 @@ export default async function CompanyPage({
               </div>
             </div>
 
-            {/* Metrics */}
+            {/* Metrics - still using sample for now */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
               {[
-                { label: "P/E Ratio", value: sample.pe },
-                { label: "EPS", value: sample.eps },
-                { label: "ROE", value: sample.roe },
-                { label: "Debt/Equity", value: sample.debtToEquity },
-                { label: "Dividend Yield", value: sample.dividendYield },
-                { label: "Score", value: `${sample.score} / 10` },
+                { label: "P/E Ratio", value: sample.pe, note: "Sample" },
+                { label: "EPS", value: sample.eps, note: "Sample" },
+                { label: "ROE", value: sample.roe, note: "Sample" },
+                { label: "Debt/Equity", value: sample.debtToEquity, note: "Sample" },
+                { label: "Dividend Yield", value: sample.dividendYield, note: "Sample" },
+                { label: "Score", value: `${sample.score} / 10`, note: "Sample" },
               ].map((item) => (
                 <div
                   key={item.label}
                   className="bg-white p-5 rounded-xl border border-slate-100"
                 >
-                  <div className="text-sm text-slate-500 mb-1">{item.label}</div>
+                  <div className="text-sm text-slate-500 mb-1 flex justify-between">
+                    <span>{item.label}</span>
+                    <span className="text-[10px] text-amber-500">{item.note}</span>
+                  </div>
                   <div
                     className={`text-xl font-bold ${
                       item.label === "Score" ? "text-teal-600" : "text-slate-800"
@@ -152,7 +164,7 @@ export default async function CompanyPage({
               </h2>
               <GrowthChart />
               <p className="text-xs text-slate-400 mt-3">
-                * Chart is currently using sample data.
+                Chart is currently using sample data.
               </p>
             </div>
 
@@ -164,27 +176,27 @@ export default async function CompanyPage({
                 </h2>
                 <p className="text-slate-600 leading-relaxed">
                   {sample.score >= 8
-                    ? `${upperSymbol} currently shows strong fundamentals with good profitability, reasonable valuation, and manageable debt.`
-                    : `${upperSymbol} has decent fundamentals. Review latest results before investing.`}
+                    ? `${upperSymbol} currently shows strong fundamentals with good profitability and manageable debt (based on available data).`
+                    : `${upperSymbol} has decent fundamentals. Always verify the latest financial results before making decisions.`}
                 </p>
               </div>
 
               <div className="bg-white rounded-2xl border border-slate-100 p-6">
                 <h2 className="text-lg font-semibold text-slate-800 mb-3">
-                  Important Notes
+                  Data Status
                 </h2>
                 <ul className="space-y-3 text-sm text-slate-600">
                   <li className="flex gap-2">
-                    <span className="text-amber-500">▲</span>
-                    <span>Price may be real EOD data. Fundamentals are still sample.</span>
+                    <span className="text-green-500">●</span>
+                    <span>Closing Price: {isRealPrice ? "Real EOD" : "Sample"}</span>
                   </li>
                   <li className="flex gap-2">
-                    <span className="text-amber-500">▲</span>
-                    <span>Always verify from official PSX sources.</span>
+                    <span className="text-amber-500">●</span>
+                    <span>Fundamentals (P/E, EPS, ROE…): Sample</span>
                   </li>
                   <li className="flex gap-2">
-                    <span className="text-red-500">▲</span>
-                    <span>Not financial advice.</span>
+                    <span className="text-red-500">●</span>
+                    <span>Not financial advice. Do your own research.</span>
                   </li>
                 </ul>
               </div>
